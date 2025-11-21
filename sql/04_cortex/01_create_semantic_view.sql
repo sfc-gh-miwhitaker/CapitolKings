@@ -23,7 +23,8 @@
  *   See sql/99_cleanup/teardown_all.sql
  ******************************************************************************/
 
-USE ROLE ACCOUNTADMIN;
+-- Use SYSADMIN for ownership (enables editing in Snowsight without ACCOUNTADMIN)
+USE ROLE SYSADMIN;
 USE DATABASE SNOWFLAKE_EXAMPLE;
 USE SCHEMA SNOWFLAKE_EXAMPLE.SEMANTIC_MODELS;
 

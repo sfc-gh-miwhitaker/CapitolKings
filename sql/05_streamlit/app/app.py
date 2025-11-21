@@ -321,39 +321,117 @@ with tab3:
     else:
         st.info("No time series data available")
 
-# TAB 4: Cortex Chat (placeholder)
+# TAB 4: Cortex Chat (Interactive)
 with tab4:
     st.header("💬 Ask the Credit Portfolio Analyst")
     st.caption("Natural language queries powered by Cortex Agent")
     
-    st.info("""
-    **🚀 Try these sample questions:**
+    # Initialize chat history in session state
+    if "chat_messages" not in st.session_state:
+        st.session_state.chat_messages = []
     
-    1. "Create a table of financial metrics for HealthTech Solutions"
-    2. "Show me all of John Williams's deals in the watchlist"
-    3. "List deals where commitment changed more than 2% between now and March 31st"
-    4. "For each month-end starting from the beginning of the current year, what is the total exposure?"
-    5. "Total count of deals for ACME"
-    6. "What is the total fair value for top 10 deals"
+    # Sample questions sidebar
+    with st.expander("💡 Sample Questions (Click to Use)", expanded=False):
+        sample_questions = [
+            "Create a table of financial metrics for HealthTech Solutions",
+            "Show me all of John Williams's deals in the watchlist",
+            "List deals where commitment changed more than 2% between now and March 31st",
+            "For each month-end starting from the beginning of the current year, what is the total exposure?",
+            "Total count of deals for ACME",
+            "What is the total fair value for top 10 deals"
+        ]
+        
+        for i, question in enumerate(sample_questions, 1):
+            if st.button(f"{i}. {question}", key=f"sample_{i}", use_container_width=True):
+                # Add to chat input by triggering a rerun with this question
+                st.session_state.pending_question = question
+                st.rerun()
     
-    **To interact with the agent:**
-    - Use Snowflake's native agent chat interface
-    - Agent name: `CREDIT_PORTFOLIO_ANALYST`
-    - Located in: `snowflake_intelligence.agents`
-    """)
+    st.divider()
     
-    st.markdown("""
-    ### How to use the agent:
+    # Display chat history
+    for message in st.session_state.chat_messages:
+        with st.chat_message(message["role"]):
+            st.markdown(message["content"])
     
-    ```sql
-    -- In Snowsight SQL worksheet:
-    SELECT SNOWFLAKE_INTELLIGENCE.AGENTS.CREDIT_PORTFOLIO_ANALYST(
-        'Create a table of financial metrics for HealthTech Solutions'
-    );
-    ```
+    # Handle pending question from sample button click
+    prompt = None
+    if "pending_question" in st.session_state:
+        prompt = st.session_state.pending_question
+        del st.session_state.pending_question
     
-    Or use the Snowflake Cortex chat interface for a conversational experience.
-    """)
+    # Chat input (if no pending question, get from input box)
+    if prompt is None:
+        prompt = st.chat_input("Ask a question about the credit portfolio...")
+    
+    # Process user input
+    if prompt:
+        # Display user message
+        with st.chat_message("user"):
+            st.markdown(prompt)
+        
+        # Add user message to history
+        st.session_state.chat_messages.append({"role": "user", "content": prompt})
+        
+        # Call Cortex Agent
+        with st.chat_message("assistant"):
+            with st.spinner("🤔 Analyzing your question..."):
+                try:
+                    # Call the Cortex Agent using Snowflake SQL
+                    agent_response = session.sql(f"""
+                        SELECT SNOWFLAKE_INTELLIGENCE.AGENTS.CREDIT_PORTFOLIO_ANALYST!CHAT(
+                            [
+                                {{'role': 'user', 'content': '{prompt.replace("'", "''")}'}}
+                            ]
+                        ) AS response
+                    """).collect()
+                    
+                    if agent_response and len(agent_response) > 0:
+                        # Extract response text from agent
+                        response_data = agent_response[0]['RESPONSE']
+                        
+                        # Handle different response formats
+                        if isinstance(response_data, str):
+                            response_text = response_data
+                        elif isinstance(response_data, dict):
+                            # Extract message content from structured response
+                            if 'message' in response_data:
+                                response_text = response_data['message']
+                            elif 'content' in response_data:
+                                response_text = response_data['content']
+                            else:
+                                response_text = str(response_data)
+                        else:
+                            response_text = str(response_data)
+                        
+                        st.markdown(response_text)
+                        
+                        # Add assistant response to history
+                        st.session_state.chat_messages.append({
+                            "role": "assistant",
+                            "content": response_text
+                        })
+                    else:
+                        error_msg = "⚠️ No response received from the agent. Please try again."
+                        st.warning(error_msg)
+                        st.session_state.chat_messages.append({
+                            "role": "assistant",
+                            "content": error_msg
+                        })
+                        
+                except Exception as e:
+                    error_msg = f"❌ Error calling agent: {str(e)}\n\n**Troubleshooting:**\n- Verify agent exists: `SHOW AGENTS IN SCHEMA snowflake_intelligence.agents;`\n- Check agent name: `CREDIT_PORTFOLIO_ANALYST`\n- Ensure you have USAGE privilege on the agent"
+                    st.error(error_msg)
+                    st.session_state.chat_messages.append({
+                        "role": "assistant",
+                        "content": error_msg
+                    })
+    
+    # Clear chat button
+    if st.session_state.chat_messages:
+        if st.button("🗑️ Clear Chat History", type="secondary"):
+            st.session_state.chat_messages = []
+            st.rerun()
 
 # Footer
 st.divider()

@@ -13,17 +13,27 @@
  *   Deploy complete credit portfolio analytics demo end-to-end:
  *   - Star schema dimensional model (6 dimensions + 1 fact table)
  *   - Synthetic data with specific entities (HealthTech Solutions, ACME, John Williams)
- *   - Semantic view for Cortex Analyst
+ *   - Semantic view for Cortex Analyst (with SYSADMIN ownership)
  *   - Cortex Agent for natural language queries
  *   - Streamlit dashboard
  *
+ * DEPLOYMENT ORDER:
+ *   Phase 1: Database + Git integration
+ *   Phase 2: Schemas + Warehouse
+ *   Phase 3: Star schema tables
+ *   Phase 4: Synthetic data
+ *   Phase 5: Helper views
+ *   Phase 6: Semantic view + Agent
+ *   Phase 7: Streamlit app
+ *
  * WHAT GETS CREATED:
  *   - Database: SNOWFLAKE_EXAMPLE (if not exists)
- *   - Schemas: SFE_ANALYTICS_CREDIT, SEMANTIC_MODELS
+ *   - Schemas: GIT_REPOS, SFE_ANALYTICS_CREDIT, SEMANTIC_MODELS
  *   - Warehouse: SFE_CREDIT_PORTFOLIO_WH (X-SMALL)
+ *   - Git: SFE_CAPITOLKINGS_REPO (code repository mirror)
  *   - Dimensions: DIM_DATE, DIM_COMPANY, DIM_DEAL, DIM_ASSET, DIM_FUND, DIM_SPONSOR
  *   - Fact: FACT_POSITION_SNAPSHOT
- *   - Semantic View: SV_CREDIT_PORTFOLIO_OVERVIEW
+ *   - Semantic View: SV_CREDIT_PORTFOLIO_OVERVIEW (owned by SYSADMIN)
  *   - Agent: CREDIT_PORTFOLIO_ANALYST
  *   - Streamlit: SFE_CREDIT_PORTFOLIO_APP
  *
@@ -43,8 +53,12 @@
 USE ROLE ACCOUNTADMIN;
 
 -- ============================================================================
--- PHASE 1: Git Integration Setup
+-- PHASE 1: Foundation Setup (Database First!)
 -- ============================================================================
+
+-- Create database first (required before creating any schemas)
+CREATE DATABASE IF NOT EXISTS SNOWFLAKE_EXAMPLE
+  COMMENT = 'DEMO: Repository for example/demo projects - NOT FOR PRODUCTION';
 
 -- Create Git repositories schema if not exists
 CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_EXAMPLE.GIT_REPOS
@@ -68,14 +82,11 @@ CREATE OR REPLACE GIT REPOSITORY SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_RE
 
 ALTER GIT REPOSITORY SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO FETCH;
 
-SELECT '✅ Git integration configured and repository fetched' AS phase_1_status;
+SELECT '✅ Foundation setup complete (database + Git integration)' AS phase_1_status;
 
 -- ============================================================================
--- PHASE 2: Foundation Setup (Database, Schemas, Warehouse)
+-- PHASE 2: Schemas and Warehouse
 -- ============================================================================
-
--- Create database (if not exists)
-EXECUTE IMMEDIATE FROM @SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO/branches/main/sql/01_setup/01_create_database.sql;
 
 -- Create schemas for star schema and semantic models
 EXECUTE IMMEDIATE FROM @SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO/branches/main/sql/01_setup/02_create_schemas.sql;
@@ -88,7 +99,7 @@ USE WAREHOUSE SFE_CREDIT_PORTFOLIO_WH;
 USE DATABASE SNOWFLAKE_EXAMPLE;
 USE SCHEMA SFE_ANALYTICS_CREDIT;
 
-SELECT '✅ Foundation setup complete (database, schemas, warehouse)' AS phase_2_status;
+SELECT '✅ Schemas and warehouse created' AS phase_2_status;
 
 -- ============================================================================
 -- PHASE 3: Star Schema Creation (Dimensions + Fact)
