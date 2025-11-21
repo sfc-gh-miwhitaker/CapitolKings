@@ -7,15 +7,15 @@ This diagram illustrates the flow of data and logic within Vanna.ai, demonstrati
 ```mermaid
 graph TD
     subgraph Frontend [User Interface]
-        A[1. User Input: "What is the avg revenue by state?"] --> B(Vanna.ask("..."))
+        A["1. User Input: What is the avg revenue by state?"] --> B("Vanna.ask(...)")
     end
 
-    subgraph Vanna Agent (Python Application)
+    subgraph Vanna_Agent [Vanna Agent - Python Application]
         B --> C{2. Retrieval: Vector Search}
         C --> D[3. Prompt Augmentation]
     end
 
-    subgraph Knowledge Base (Vector Store)
+    subgraph Knowledge_Base [Knowledge Base - Vector Store]
         DDL(Training Data: DDL/Schema)
         DOC(Training Data: Documentation)
         QSQL(Training Data: Q-SQL Examples)
@@ -29,7 +29,7 @@ graph TD
 
     E --> F[5. Execute SQL Query]
     
-    subgraph Snowflake Database
+    subgraph Snowflake_Database [Snowflake Database]
         G[Snowflake Connection / Warehouse]
         F -->|Generated SQL| G
         G -->|Query Results| H[6. Results: Pandas DataFrame]
