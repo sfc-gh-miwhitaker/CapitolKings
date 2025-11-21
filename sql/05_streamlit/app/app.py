@@ -322,15 +322,163 @@ with tab3:
         st.info("No time series data available")
 
 # TAB 4: Cortex Chat (Interactive)
+# Following Snowflake best practices for Cortex Agent integration:
+# - REST API invocation (not SQL)
+# - Thread management for conversation context
+# - Proper SSE (Server-Sent Events) streaming handling
+# - Specific error handling by HTTP status code
+# Reference: https://docs.snowflake.com/en/user-guide/snowflake-cortex/cortex-agents/api-reference
 with tab4:
     st.header("💬 Ask the Credit Portfolio Analyst")
-    st.caption("Natural language queries powered by Cortex Agent")
+    st.caption("Natural language queries powered by Cortex Agent via REST API")
     
-    # Initialize chat history in session state
+    # Initialize session state for chat management
     if "chat_messages" not in st.session_state:
         st.session_state.chat_messages = []
+    if "agent_thread_id" not in st.session_state:
+        st.session_state.agent_thread_id = None
     
-    # Sample questions sidebar
+    # Helper function to call Cortex Agent REST API
+    @st.cache_resource
+    def get_session_token():
+        """Cache the session token for authentication"""
+        return session.sql("SELECT SYSTEM$GET_SNOWSIGHT_HOST() as host, CURRENT_ACCOUNT() as account").collect()
+    
+    def call_cortex_agent(user_message, thread_id=None):
+        """
+        Call Cortex Agent using REST API following Snowflake best practices.
+        
+        Args:
+            user_message (str): User's question
+            thread_id (str, optional): Thread ID for conversation context
+            
+        Returns:
+            tuple: (response_text, thread_id, error_message)
+        """
+        import requests
+        import json
+        
+        try:
+            # Get Snowflake session context
+            conn_info = get_session_token()
+            
+            # Build REST API endpoint
+            # Format: https://<account>.snowflakecomputing.com/api/v2/databases/{db}/schemas/{schema}/agents/{name}:run
+            account = session.sql("SELECT CURRENT_ACCOUNT()").collect()[0][0]
+            region = session.sql("SELECT CURRENT_REGION()").collect()[0][0]
+            
+            # Construct base URL
+            if 'AWS_' in region:
+                host = f"{account.lower()}.snowflakecomputing.com"
+            else:
+                host = f"{account.lower()}.{region.lower()}.snowflakecomputing.com"
+            
+            agent_url = f"https://{host}/api/v2/databases/SNOWFLAKE_INTELLIGENCE/schemas/AGENTS/agents/CREDIT_PORTFOLIO_ANALYST:run"
+            
+            # Build request payload
+            payload = {
+                "messages": [
+                    {"role": "user", "content": user_message}
+                ]
+            }
+            
+            # Add thread_id for conversation context (best practice for multi-turn conversations)
+            if thread_id:
+                payload["thread_id"] = thread_id
+            
+            # Get authentication token
+            # In Streamlit in Snowflake, we use the user's session credentials
+            token = session.sql("SELECT SYSTEM$GET_SNOWSIGHT_HOST()").collect()[0][0]
+            
+            headers = {
+                "Authorization": f"Snowflake Token=\"{session.sql('SELECT CURRENT_SESSION()').collect()[0][0]}\"",
+                "Content-Type": "application/json",
+                "Accept": "text/event-stream"  # SSE format
+            }
+            
+            # Make REST API call with streaming enabled
+            response = requests.post(
+                agent_url,
+                json=payload,
+                headers=headers,
+                stream=True,
+                timeout=60
+            )
+            
+            # Check for HTTP errors
+            response.raise_for_status()
+            
+            # Parse Server-Sent Events (SSE) streaming response
+            response_text = ""
+            new_thread_id = thread_id
+            
+            for line in response.iter_lines():
+                if line:
+                    line_str = line.decode('utf-8')
+                    
+                    # SSE format: "data: {json}"
+                    if line_str.startswith('data: '):
+                        data_json = line_str[6:]  # Remove 'data: ' prefix
+                        
+                        # Check for stream completion
+                        if data_json.strip() == '[DONE]':
+                            break
+                        
+                        try:
+                            event_data = json.loads(data_json)
+                            
+                            # Extract thread_id from first response (for conversation persistence)
+                            if 'thread_id' in event_data and not new_thread_id:
+                                new_thread_id = event_data['thread_id']
+                            
+                            # Extract message content
+                            if 'message' in event_data:
+                                msg = event_data['message']
+                                if 'content' in msg:
+                                    content = msg['content']
+                                    
+                                    # Handle both string and list formats
+                                    if isinstance(content, list):
+                                        for item in content:
+                                            if isinstance(item, dict) and 'text' in item:
+                                                response_text += item['text']
+                                            elif isinstance(item, str):
+                                                response_text += item
+                                    elif isinstance(content, str):
+                                        response_text += content
+                            
+                            # Handle delta updates (streaming tokens)
+                            elif 'delta' in event_data and 'content' in event_data['delta']:
+                                response_text += event_data['delta']['content']
+                        
+                        except json.JSONDecodeError:
+                            continue
+            
+            return (response_text, new_thread_id, None)
+        
+        except requests.exceptions.HTTPError as e:
+            status = e.response.status_code
+            if status == 404:
+                return (None, None, "Agent not found. Verify deployment and permissions.")
+            elif status == 403:
+                return (None, None, "Access denied. Grant USAGE on agent to your role:\n```sql\nGRANT USAGE ON AGENT snowflake_intelligence.agents.CREDIT_PORTFOLIO_ANALYST TO ROLE <your_role>;\n```")
+            elif status == 401:
+                return (None, None, "Authentication failed. Please refresh your session.")
+            elif status == 500:
+                return (None, None, "Server error. Check agent configuration and try again.")
+            else:
+                return (None, None, f"HTTP {status}: {e.response.text}")
+        
+        except requests.exceptions.Timeout:
+            return (None, None, "Request timed out. The agent may be processing a complex query. Try a simpler question.")
+        
+        except requests.exceptions.RequestException as e:
+            return (None, None, f"Network error: {str(e)}")
+        
+        except Exception as e:
+            return (None, None, f"Unexpected error: {str(e)}")
+    
+    # Sample questions with click-to-use functionality
     with st.expander("💡 Sample Questions (Click to Use)", expanded=False):
         sample_questions = [
             "Create a table of financial metrics for HealthTech Solutions",
@@ -343,9 +491,16 @@ with tab4:
         
         for i, question in enumerate(sample_questions, 1):
             if st.button(f"{i}. {question}", key=f"sample_{i}", use_container_width=True):
-                # Add to chat input by triggering a rerun with this question
                 st.session_state.pending_question = question
                 st.rerun()
+    
+    # Reset conversation (clears thread and history)
+    col1, col2 = st.columns([5, 1])
+    with col2:
+        if st.button("🔄 Reset", help="Clear conversation and start fresh", use_container_width=True):
+            st.session_state.chat_messages = []
+            st.session_state.agent_thread_id = None
+            st.rerun()
     
     st.divider()
     
@@ -354,13 +509,13 @@ with tab4:
         with st.chat_message(message["role"]):
             st.markdown(message["content"])
     
-    # Handle pending question from sample button click
+    # Handle pending question from sample button
     prompt = None
     if "pending_question" in st.session_state:
         prompt = st.session_state.pending_question
         del st.session_state.pending_question
     
-    # Chat input (if no pending question, get from input box)
+    # Chat input
     if prompt is None:
         prompt = st.chat_input("Ask a question about the credit portfolio...")
     
@@ -370,68 +525,45 @@ with tab4:
         with st.chat_message("user"):
             st.markdown(prompt)
         
-        # Add user message to history
+        # Add to history
         st.session_state.chat_messages.append({"role": "user", "content": prompt})
         
-        # Call Cortex Agent
+        # Call agent and display response
         with st.chat_message("assistant"):
             with st.spinner("🤔 Analyzing your question..."):
-                try:
-                    # Call the Cortex Agent using Snowflake SQL
-                    agent_response = session.sql(f"""
-                        SELECT SNOWFLAKE_INTELLIGENCE.AGENTS.CREDIT_PORTFOLIO_ANALYST!CHAT(
-                            [
-                                {{'role': 'user', 'content': '{prompt.replace("'", "''")}'}}
-                            ]
-                        ) AS response
-                    """).collect()
-                    
-                    if agent_response and len(agent_response) > 0:
-                        # Extract response text from agent
-                        response_data = agent_response[0]['RESPONSE']
-                        
-                        # Handle different response formats
-                        if isinstance(response_data, str):
-                            response_text = response_data
-                        elif isinstance(response_data, dict):
-                            # Extract message content from structured response
-                            if 'message' in response_data:
-                                response_text = response_data['message']
-                            elif 'content' in response_data:
-                                response_text = response_data['content']
-                            else:
-                                response_text = str(response_data)
-                        else:
-                            response_text = str(response_data)
-                        
-                        st.markdown(response_text)
-                        
-                        # Add assistant response to history
-                        st.session_state.chat_messages.append({
-                            "role": "assistant",
-                            "content": response_text
-                        })
-                    else:
-                        error_msg = "⚠️ No response received from the agent. Please try again."
-                        st.warning(error_msg)
-                        st.session_state.chat_messages.append({
-                            "role": "assistant",
-                            "content": error_msg
-                        })
-                        
-                except Exception as e:
-                    error_msg = f"❌ Error calling agent: {str(e)}\n\n**Troubleshooting:**\n- Verify agent exists: `SHOW AGENTS IN SCHEMA snowflake_intelligence.agents;`\n- Check agent name: `CREDIT_PORTFOLIO_ANALYST`\n- Ensure you have USAGE privilege on the agent"
-                    st.error(error_msg)
+                response_text, thread_id, error = call_cortex_agent(
+                    prompt, 
+                    st.session_state.agent_thread_id
+                )
+                
+                if error:
+                    # Display error with helpful context
+                    st.error(f"❌ {error}")
                     st.session_state.chat_messages.append({
                         "role": "assistant",
-                        "content": error_msg
+                        "content": f"❌ {error}"
                     })
-    
-    # Clear chat button
-    if st.session_state.chat_messages:
-        if st.button("🗑️ Clear Chat History", type="secondary"):
-            st.session_state.chat_messages = []
-            st.rerun()
+                elif response_text:
+                    # Success - display response
+                    st.markdown(response_text)
+                    
+                    # Update thread ID for conversation continuity
+                    if thread_id:
+                        st.session_state.agent_thread_id = thread_id
+                    
+                    # Add to history
+                    st.session_state.chat_messages.append({
+                        "role": "assistant",
+                        "content": response_text
+                    })
+                else:
+                    # Empty response
+                    warning_msg = "⚠️ No response received. Please try rephrasing your question."
+                    st.warning(warning_msg)
+                    st.session_state.chat_messages.append({
+                        "role": "assistant",
+                        "content": warning_msg
+                    })
 
 # Footer
 st.divider()
