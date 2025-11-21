@@ -1,0 +1,18 @@
+# Development artifacts
+.cursor/
+.cursornotes/
+
+# Virtual environments
+venv/
+.venv/
+*.venv/
+
+# Config with secrets
+config/.env
+
+# Process tracking
+.pids/
+*.pid
+
+# Builddemo state
+.builddemo-state.json
