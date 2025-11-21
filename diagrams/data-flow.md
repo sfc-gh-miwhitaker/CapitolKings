@@ -1,9 +1,13 @@
 # Data Flow - Capitol Kings Intelligence Demo
-Author: Michael Whitaker  
-Last Updated: 2025-11-19  
-Status: Reference Impl
+
+Author: SE Community  
+Last Updated: 2025-11-21  
+Expires: 2025-12-21 (30 days from creation)  
+Status: Reference Implementation
+
 ![Snowflake](https://img.shields.io/badge/Snowflake-29B5E8?style=for-the-badge&logo=snowflake&logoColor=white)
-Reference Impl: This code demonstrates prod-grade architectural patterns and best practice. review and customize security, networking, logic for your organization's specific requirements before deployment.
+
+**Reference Implementation:** This code demonstrates production-grade architectural patterns and best practices. Review and customize security, networking, and logic for your organization's specific requirements before deployment.
 
 ## Overview
 Illustrates how synthetic portfolio data, market benchmarks, and analyst memos move through Capitol Kings from ingestion to consumption.

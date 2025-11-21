@@ -1,0 +1,111 @@
+name: Demo Expiration Check and Auto-Archive
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  check-expiration:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Check Expiration Date
+        id: check_date
+        run: |
+          # Demo expires 30 days after creation (2025-11-21 + 30 days = 2025-12-21)
+          EXPIRATION_DATE="2025-12-21"
+          CURRENT_DATE=$(date +%Y-%m-%d)
+          
+          echo "Current date: $CURRENT_DATE"
+          echo "Expiration date: $EXPIRATION_DATE"
+          
+          if [[ "$CURRENT_DATE" > "$EXPIRATION_DATE" ]]; then
+            echo "expired=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Demo has expired on $EXPIRATION_DATE"
+          else
+            echo "expired=false" >> $GITHUB_OUTPUT
+            echo "✅ Demo is still active (expires $EXPIRATION_DATE)"
+          fi
+          
+      - name: Create Expiration Notice Issue
+        if: steps.check_date.outputs.expired == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = '⚠️ Demo Expired - Archive Required';
+            const body = `# Demo Expiration Notice
+            
+            This demonstration project expired on **2025-12-21** (30 days after creation).
+            
+            ## Required Actions
+            
+            1. **Archive this repository** to prevent users from deploying stale code
+            2. **Make repository private** (optional, but recommended for expired demos)
+            3. **Update README.md** badge to show "Status: EXPIRED"
+            
+            ## Why This Matters
+            
+            Snowflake features and syntax evolve rapidly. Expired demos may contain:
+            - Deprecated SQL syntax
+            - Outdated Cortex Intelligence patterns
+            - Stale performance recommendations
+            
+            Users discovering this repo after expiration may experience:
+            - Deployment failures due to syntax changes
+            - Suboptimal performance from outdated patterns
+            - Confusion from deprecated features
+            
+            ## Recommended Action
+            
+            Archive this repository via: **Settings → Archive this repository**
+            
+            This preserves the code for reference while clearly indicating it should not be used for new deployments.
+            
+            ---
+            *This issue was automatically created by the Demo Expiration Check workflow.*`;
+            
+            // Check if issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: ['demo-expired']
+            });
+            
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['demo-expired', 'maintenance']
+              });
+              console.log('Created expiration notice issue');
+            } else {
+              console.log('Expiration issue already exists');
+            }
+            
+      - name: Update README Badge
+        if: steps.check_date.outputs.expired == 'true'
+        run: |
+          # Update status badge to EXPIRED
+          sed -i 's/Status-ACTIVE-green/Status-EXPIRED-red/g' README.md
+          
+          # Check if changes were made
+          if git diff --quiet README.md; then
+            echo "No changes needed to README.md"
+          else
+            git config user.name "GitHub Actions"
+            git config user.email "actions@github.com"
+            git add README.md
+            git commit -m "docs: update status badge to EXPIRED (automated)"
+            git push
+          fi
+

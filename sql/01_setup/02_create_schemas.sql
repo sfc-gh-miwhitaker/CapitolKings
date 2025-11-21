@@ -18,8 +18,8 @@ USE DATABASE SNOWFLAKE_EXAMPLE;
 
 -- Star schema layer: Dimensions and Facts
 CREATE SCHEMA IF NOT EXISTS SFE_ANALYTICS_CREDIT
-  COMMENT = 'DEMO: credit-portfolio - Star schema with dimensions and facts for credit portfolio analytics';
+  COMMENT = 'DEMO: credit-portfolio - Star schema with dimensions and facts for credit portfolio analytics | Author: SE Community | Expires: 2025-12-21';
 
 -- Semantic views layer: Cortex Analyst models
 CREATE SCHEMA IF NOT EXISTS SEMANTIC_MODELS
-  COMMENT = 'DEMO: Semantic views for Cortex Analyst - shared across demos';
+  COMMENT = 'DEMO: Semantic views for Cortex Analyst - shared across demos | Author: SE Community | Expires: 2025-12-21';

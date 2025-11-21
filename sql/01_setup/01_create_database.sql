@@ -19,7 +19,7 @@
 USE ROLE ACCOUNTADMIN;
 
 CREATE DATABASE IF NOT EXISTS SNOWFLAKE_EXAMPLE
-  COMMENT = 'DEMO: Repository for Snowflake Intelligence reference implementations - NOT FOR PRODUCTION';
+  COMMENT = 'DEMO: Repository for Snowflake Intelligence reference implementations - NOT FOR PRODUCTION | Author: SE Community | Expires: 2025-12-21';
 
 CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_EXAMPLE.SEMANTIC_MODELS
-  COMMENT = 'DEMO: Semantic views for Cortex Analyst agents';
+  COMMENT = 'DEMO: Semantic views for Cortex Analyst agents | Author: SE Community | Expires: 2025-12-21';

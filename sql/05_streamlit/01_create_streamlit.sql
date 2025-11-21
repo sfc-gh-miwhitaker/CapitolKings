@@ -21,4 +21,4 @@ CREATE OR REPLACE STREAMLIT SFE_CREDIT_PORTFOLIO_APP
   ROOT_LOCATION = '@SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO/branches/main/sql/05_streamlit/app'
   MAIN_FILE = 'app.py'
   QUERY_WAREHOUSE = SFE_CREDIT_PORTFOLIO_WH
-  COMMENT = 'DEMO: credit-portfolio - Streamlit dashboard for credit portfolio analytics';
+  COMMENT = 'DEMO: credit-portfolio - Streamlit dashboard for credit portfolio analytics | Author: SE Community | Expires: 2025-12-21';

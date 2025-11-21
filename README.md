@@ -1,4 +1,19 @@
+![Reference Implementation](https://img.shields.io/badge/Reference-Implementation-blue)
+![Ready to Run](https://img.shields.io/badge/Ready%20to%20Run-Yes-green)
+![Expires](https://img.shields.io/badge/Expires-2025--12--21-orange)
+![Status](https://img.shields.io/badge/Status-ACTIVE-green)
+
 # Capitol Kings Credit Portfolio Demo
+
+> **⚠️ DEMONSTRATION PROJECT - EXPIRES: 2025-12-21**  
+> This demo uses Snowflake features current as of November 2025.  
+> After expiration, this repository will be archived and made private.
+
+**Author:** SE Community  
+**Purpose:** Reference implementation for credit portfolio analytics with Snowflake Intelligence  
+**Created:** 2025-11-21 | **Expires:** 2025-12-21 (30 days) | **Status:** ACTIVE
+
+---
 
 Capitol Kings is a Snowflake-native reference implementation showcasing Snowflake Intelligence (Cortex Analyst, Cortex Agents, Streamlit) for credit portfolio analytics. Built on a star schema dimensional model, this demo enables natural language queries over deals, exposures, commitments, and portfolio performance using only governed data in `SNOWFLAKE_EXAMPLE`.
 
@@ -8,12 +23,12 @@ Follow these steps in order:
 
 1. `docs/01-SETUP.md` - Confirm roles and prerequisites (5 min)
 2. `sql/00_deploy_all.sql` - Copy/paste into Snowsight, click **Run All** (5-10 min)
-3. `docs/02-USAGE.md` - Test 6 business questions with the agent (10 min)
+3. `docs/02-DEPLOYMENT.md` - Test 6 business questions with the agent (10 min)
 4. `docs/03-CLEANUP.md` - Drop all demo objects when finished (1 min)
 
 **Total time:** ~20-25 minutes
 
-> **Note on `.gitignore`:** This repository does not include a committed `.gitignore` file by design. If you clone this repo, create your own `.gitignore` locally based on your development environment needs. Common entries: `.cursor/`, `.cursornotes/`, `venv/`, `.venv/`, `config/.env`, `.pids/`, `.builddemo-state.json`.
+> **Note on `.gitignore`:** This repository intentionally does not include a `.gitignore` file in version control. All ignore patterns are handled via **global ignore** at `~/.config/git/ignore` (516 universal patterns including AI tooling, IDEs, credentials, and build artifacts). If you need project-specific exclusions after cloning, use `.git/info/exclude` (never committed) instead of creating a `.gitignore` file. This approach maintains repository professionalism without revealing development tooling.
 
 ## Quick Start
 
@@ -211,6 +226,14 @@ The agent can answer these natural language queries:
 3. **Week 5-8:** Full rollout, sunset Vanna.AI
 4. **Month 3+:** Add advanced features (custom ML tools, additional semantic views)
 
+## Deployment Architecture
+
+**Mode:** 100% Snowsight-Only (no local tooling required)
+- All deployment via `sql/00_deploy_all.sql` (copy/paste into Snowsight)
+- All operations performed within Snowflake
+- No local scripts, Python, or Node.js dependencies
+- Pure native Snowflake architecture
+
 ## File Structure
 
 ```
@@ -226,17 +249,15 @@ The agent can answer these natural language queries:
 │   └── 99_cleanup/ (teardown script)
 ├── docs/
 │   ├── 01-SETUP.md (prerequisites)
-│   ├── 02-USAGE.md (6 business questions)
+│   ├── 02-DEPLOYMENT.md (deployment and testing)
 │   ├── 03-CLEANUP.md (teardown instructions)
 │   ├── 04-VANNA-COMPARISON.md (competitive analysis)
-│   └── 05-DEMO-TALKING-POINTS.md (session guide)
+│   └── 05-DEMO-GUIDE.md (session guide)
 ├── diagrams/
 │   ├── data-model.md (star schema ERD)
 │   ├── data-flow.md (synthetic data → semantic view)
 │   ├── network-flow.md (Snowflake architecture)
 │   └── auth-flow.md (RBAC and access patterns)
-└── tools/
-    └── (Informational scripts for Snowsight workflow)
 ```
 
 ## Support & Next Steps
@@ -257,6 +278,10 @@ The agent can answer these natural language queries:
 ## License & Attribution
 
 **Status:** Reference Implementation - NOT FOR PRODUCTION USE
+
+**Author:** SE Community  
+**Created:** 2025-11-21  
+**Expires:** 2025-12-21 (30 days from creation)
 
 This code demonstrates production-grade architectural patterns and best practices. Review and customize security, networking, and logic for your organization's specific requirements before deployment.
 

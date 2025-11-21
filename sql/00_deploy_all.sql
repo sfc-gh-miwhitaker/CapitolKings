@@ -53,16 +53,44 @@
 USE ROLE ACCOUNTADMIN;
 
 -- ============================================================================
+-- EXPIRATION CHECK (PUBLIC DEMO REQUIREMENT)
+-- ============================================================================
+
+-- This demo expires 30 days after publication (2025-11-21 + 30 days = 2025-12-21)
+-- After expiration, Snowflake features and syntax may have changed.
+
+SET EXPIRATION_DATE = '2025-12-21';
+
+SELECT CASE 
+  WHEN CURRENT_DATE() > TO_DATE($EXPIRATION_DATE)
+  THEN '⚠️ WARNING: This demo expired on ' || $EXPIRATION_DATE || '. ' ||
+       'Snowflake features and syntax may have changed since November 2025. ' ||
+       'Verify syntax against current Snowflake documentation before proceeding. ' ||
+       'See https://github.com/sfc-gh-miwhitaker/CapitolKings for updated versions.'
+  WHEN CURRENT_DATE() = TO_DATE($EXPIRATION_DATE)
+  THEN '⚠️ NOTICE: This demo expires TODAY (' || $EXPIRATION_DATE || '). ' ||
+       'This may be the last day this deployment works as-is.'
+  ELSE '✅ Demo is current (expires ' || $EXPIRATION_DATE || '). Proceeding with deployment...'
+END AS expiration_status;
+
+-- Note: This is a soft warning. Deployment will continue.
+-- For production use, uncomment the following to block deployment after expiration:
+--
+-- IF (CURRENT_DATE() > TO_DATE($EXPIRATION_DATE)) THEN
+--   RETURN 'ERROR: Demo expired. Deployment blocked.';
+-- END IF;
+
+-- ============================================================================
 -- PHASE 1: Foundation Setup (Database First!)
 -- ============================================================================
 
 -- Create database first (required before creating any schemas)
 CREATE DATABASE IF NOT EXISTS SNOWFLAKE_EXAMPLE
-  COMMENT = 'DEMO: Repository for example/demo projects - NOT FOR PRODUCTION';
+  COMMENT = 'DEMO: Repository for example/demo projects - NOT FOR PRODUCTION | Author: SE Community | Expires: 2025-12-21';
 
 -- Create Git repositories schema if not exists
 CREATE SCHEMA IF NOT EXISTS SNOWFLAKE_EXAMPLE.GIT_REPOS
-  COMMENT = 'DEMO: Shared Git repository storage for demos';
+  COMMENT = 'DEMO: Shared Git repository storage for demos | Author: SE Community | Expires: 2025-12-21';
 
 -- Create API integration for GitHub access
 CREATE OR REPLACE API INTEGRATION SFE_CAPITOLKINGS_GIT_API_INTEGRATION
@@ -72,13 +100,13 @@ CREATE OR REPLACE API INTEGRATION SFE_CAPITOLKINGS_GIT_API_INTEGRATION
       'https://github.com/sfc-gh-miwhitaker/CapitolKings.git'
   )
   ENABLED = TRUE
-  COMMENT = 'DEMO: credit-portfolio - Git access for Capitol Kings repository';
+  COMMENT = 'DEMO: credit-portfolio - Git access for Capitol Kings repository | Author: SE Community | Expires: 2025-12-21';
 
 -- Create Git repository and fetch latest
 CREATE OR REPLACE GIT REPOSITORY SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO
   API_INTEGRATION = SFE_CAPITOLKINGS_GIT_API_INTEGRATION
   ORIGIN = 'https://github.com/sfc-gh-miwhitaker/CapitolKings.git'
-  COMMENT = 'DEMO: credit-portfolio - Capitol Kings repo mirror';
+  COMMENT = 'DEMO: credit-portfolio - Capitol Kings repo mirror | Author: SE Community | Expires: 2025-12-21';
 
 ALTER GIT REPOSITORY SNOWFLAKE_EXAMPLE.GIT_REPOS.SFE_CAPITOLKINGS_REPO FETCH;
 

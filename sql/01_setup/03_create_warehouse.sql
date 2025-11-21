@@ -19,5 +19,5 @@ CREATE WAREHOUSE IF NOT EXISTS SFE_CREDIT_PORTFOLIO_WH
   AUTO_SUSPEND = 60
   AUTO_RESUME = TRUE
   INITIALLY_SUSPENDED = TRUE
-  COMMENT = 'DEMO: credit-portfolio - Dedicated warehouse for credit portfolio analytics and Cortex Intelligence';
+  COMMENT = 'DEMO: credit-portfolio - Dedicated warehouse for credit portfolio analytics and Cortex Intelligence | Author: SE Community | Expires: 2025-12-21';
 
