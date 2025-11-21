@@ -13,6 +13,8 @@ Follow these steps in order:
 
 **Total time:** ~20-25 minutes
 
+> **Note on `.gitignore`:** This repository does not include a committed `.gitignore` file by design. If you clone this repo, create your own `.gitignore` locally based on your development environment needs. Common entries: `.cursor/`, `.cursornotes/`, `venv/`, `.venv/`, `config/.env`, `.pids/`, `.builddemo-state.json`.
+
 ## Quick Start
 
 ### Deploy (5-10 minutes)
